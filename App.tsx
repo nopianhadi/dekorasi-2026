@@ -79,6 +79,7 @@ const PublicInvoice = lazy(() => import("./src/features/public/components/Public
 const PublicReceipt = lazy(() => import("./src/features/public/components/PublicReceipt"));
 const VendorPublicProfile = lazy(() => import("./src/pages/public/VendorPublicProfile"));
 const PortfolioDetailPage = lazy(() => import("./src/pages/public/PortfolioDetailPage"));
+const InventoryPage = lazy(() => import("./src/pages/inventory/InventoryPage"));
 import { listPromoCodes } from "./src/services/promoCodes";
 import { listCards as listCardsFromDb } from "./src/services/cards";
 import { listPackages } from "./src/services/packages";
@@ -203,6 +204,9 @@ const BottomNavBar: React.FC<{
         break;
       case ViewType.SETTINGS:
         import("./src/pages/settings/SettingsPage");
+        break;
+      case ViewType.INVENTORY:
+        import("./src/pages/inventory/InventoryPage");
         break;
       default:
         break;
@@ -1164,6 +1168,7 @@ function App() {
       booking: ViewType.BOOKING,
       clients: ViewType.CLIENTS,
       projects: ViewType.PROJECTS,
+      "inventaris-dekorasi": ViewType.INVENTORY,
       team: ViewType.TEAM,
       finance: ViewType.FINANCE,
       calendar: ViewType.CALENDAR,
@@ -1228,6 +1233,9 @@ function App() {
             }
           })();
         }
+        break;
+      case ViewType.INVENTORY:
+        appData.loadProjects();
         break;
       case ViewType.TEAM:
         appData.loadTeamMembers();
@@ -1394,6 +1402,7 @@ function App() {
       [ViewType.BOOKING]: "booking",
       [ViewType.CLIENTS]: "clients",
       [ViewType.PROJECTS]: "projects",
+      [ViewType.INVENTORY]: "inventaris-dekorasi",
       [ViewType.TEAM]: "team",
       [ViewType.FINANCE]: "finance",
       [ViewType.CALENDAR]: "calendar",
@@ -1425,6 +1434,9 @@ function App() {
       case ViewType.PROJECTS:
         appData.loadProjects();
         appData.loadTeamMembers();
+        break;
+      case ViewType.INVENTORY:
+        appData.loadProjects();
         break;
       case ViewType.TEAM:
         appData.loadTeamMembers();
@@ -1735,6 +1747,17 @@ function App() {
               }
               totals={appData.totals}
             />
+          </DataLoadingWrapper>
+        );
+      case ViewType.INVENTORY:
+        return (
+          <DataLoadingWrapper
+            loading={appData.loading.projects}
+            loaded={appData.loaded.projects}
+            loadingMessage="Memuat data proyek..."
+            onRetry={appData.loadProjects}
+          >
+            <InventoryPage projects={projects} />
           </DataLoadingWrapper>
         );
       case ViewType.FINANCE:

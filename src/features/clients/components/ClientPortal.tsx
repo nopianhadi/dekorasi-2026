@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Client, Project, ClientFeedback, SatisfactionLevel, Transaction, Profile, Package, SubStatusConfig, TransactionType, ClientPortalProps, ProjectStatusConfig, TeamMember } from '../../../types';
-import { FolderKanbanIcon, ClockIcon, StarIcon, FileTextIcon, HomeIcon, CreditCardIcon, CheckCircleIcon, SendIcon, DownloadIcon, GalleryHorizontalIcon, MessageSquareIcon, ChevronRightIcon, CalendarIcon, BriefcaseIcon, DollarSignIcon, UsersIcon, GoogleIcon, LinkIcon } from '../../../constants';
+import { FolderKanbanIcon, ClockIcon, StarIcon, FileTextIcon, HomeIcon, CreditCardIcon, CheckCircleIcon, SendIcon, DownloadIcon, GalleryHorizontalIcon, MessageSquareIcon, ChevronRightIcon, CalendarIcon, BriefcaseIcon, DollarSignIcon, UsersIcon, GoogleIcon, LinkIcon, BoxIcon } from '../../../constants';
 import Modal from '../../../shared/ui/Modal';
 import SignaturePad from '../../../shared/ui/SignaturePad';
 import { createClientFeedback } from '../../../services/clientFeedback';
@@ -197,6 +197,15 @@ const ClientPortal: React.FC<ClientPortalProps> = ({ accessId, clients, projects
                             <FolderKanbanIcon className="w-4 h-4 inline-block mr-2 -mt-0.5" />
                             Acara Saya
                         </button>
+                        {!isVendorClient && (
+                            <button
+                                onClick={() => setActiveTab('dekorasi')}
+                                className={`px-5 py-2.5 rounded-xl font-bold text-sm whitespace-nowrap transition-all ${activeTab === 'dekorasi' ? 'bg-amber-600 text-white shadow-md shadow-amber-500/20' : 'text-slate-600 hover:bg-white hover:text-amber-600'}`}
+                            >
+                                <BoxIcon className="w-4 h-4 inline-block mr-2 -mt-0.5" />
+                                Konsep Dekorasi
+                            </button>
+                        )}
                         <button
                             onClick={() => setActiveTab('dokumen')}
                             className={`px-5 py-2.5 rounded-xl font-bold text-sm whitespace-nowrap transition-all ${activeTab === 'dokumen' ? 'bg-purple-600 text-white shadow-md shadow-purple-500/20' : 'text-slate-600 hover:bg-white hover:text-purple-600'}`}
@@ -231,6 +240,11 @@ const ClientPortal: React.FC<ClientPortalProps> = ({ accessId, clients, projects
                         {activeTab === 'proyek' && (
                             <div className="animate-fade-in">
                                 <ProjectsTab projects={clientProjects} profile={profile} teamMembers={teamMembers} />
+                            </div>
+                        )}
+                        {activeTab === 'dekorasi' && !isVendorClient && (
+                            <div className="animate-fade-in">
+                                <DekorasiTab projects={clientProjects} profile={profile} />
                             </div>
                         )}
                         {activeTab === 'dokumen' && (
@@ -864,6 +878,251 @@ const ProjectsTab: React.FC<{ projects: Project[], profile: Profile, teamMembers
     );
 };
 
+const DekorasiTab: React.FC<{ projects: Project[], profile: Profile }> = ({ projects, profile }) => {
+    const [selectedProjectId, setSelectedProjectId] = useState<string | null>(projects[0]?.id || null);
+    const [referenceLink, setReferenceLink] = useState('');
+    const [isSaving, setIsSaving] = useState(false);
+    const [saveMessage, setSaveMessage] = useState('');
+
+    // Sync selectedProjectId if it's null but projects data has arrived
+    useEffect(() => {
+        if (!selectedProjectId && projects.length > 0) {
+            setSelectedProjectId(projects[0].id);
+        }
+    }, [projects, selectedProjectId]);
+
+    const selectedProject = useMemo(() => 
+        projects.find(p => p.id === selectedProjectId) || projects[0], 
+        [projects, selectedProjectId]
+    );
+
+    // Load existing reference link from eventDetails
+    useEffect(() => {
+        if (selectedProject?.eventDetails?.tentaRef) {
+            setReferenceLink(selectedProject.eventDetails.tentaRef);
+        } else {
+            setReferenceLink('');
+        }
+    }, [selectedProject]);
+
+    const handleSaveReferenceLink = async () => {
+        if (!selectedProject || !referenceLink.trim()) {
+            setSaveMessage('Mohon masukkan link referensi terlebih dahulu');
+            setTimeout(() => setSaveMessage(''), 3000);
+            return;
+        }
+
+        setIsSaving(true);
+        try {
+            const { updateProject } = await import('../../../services/projects');
+            const updatedEventDetails = {
+                ...(selectedProject.eventDetails || {}),
+                tentaRef: referenceLink
+            };
+            await updateProject(selectedProject.id, { eventDetails: updatedEventDetails });
+            setSaveMessage('✓ Link referensi berhasil disimpan!');
+            setTimeout(() => setSaveMessage(''), 3000);
+        } catch (error) {
+            console.error('Failed to save reference link:', error);
+            setSaveMessage('Gagal menyimpan. Silakan coba lagi.');
+            setTimeout(() => setSaveMessage(''), 3000);
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const eventDetails = selectedProject?.eventDetails || {};
+    const projectInventoryItems = selectedProject?.inventoryItems || [];
+
+    return (
+        <div className="space-y-4 md:space-y-6">
+            {projects.length > 1 && (
+                <div className="portal-surface p-4 md:p-5 rounded-2xl border-slate-200/80 shadow-sm widget-animate">
+                    <label htmlFor="decoration-project-selector" className="text-[10px] md:text-xs font-black uppercase tracking-widest text-slate-400 flex items-center gap-2 mb-2">
+                        <span>🎯</span> Pilih Acara Pernikahan
+                    </label>
+                    <div className="relative">
+                        <select
+                            id="decoration-project-selector"
+                            value={selectedProjectId || ''}
+                            onChange={(e) => setSelectedProjectId(e.target.value)}
+                            className="w-full p-3 bg-white/50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-amber-500 focus:outline-none font-bold text-slate-800 transition-all appearance-none cursor-pointer"
+                        >
+                            {projects.map(p => (
+                                <option key={p.id} value={p.id}>{p.projectName}</option>
+                            ))}
+                        </select>
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                            <ChevronRightIcon className="w-5 h-5 rotate-90" />
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {!selectedProject ? (
+                <div className="portal-surface p-12 rounded-[2rem] border border-white/40 text-center widget-animate">
+                    <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <BoxIcon className="w-8 h-8 text-slate-300" />
+                    </div>
+                    <p className="text-sm font-bold text-slate-400">Pilih Acara Pernikahan untuk melihat konsep dekorasinya</p>
+                </div>
+            ) : (
+                <div className="space-y-6 widget-animate" style={{ animationDelay: '100ms' }}>
+                    {/* Header Section */}
+                    <div className="portal-surface p-6 md:p-10 rounded-[2.5rem] overflow-hidden relative border-none bg-white">
+                        <div className="absolute top-0 right-0 w-80 h-80 bg-amber-500/5 blur-[120px] -mr-40 -mt-40 rounded-full"></div>
+                        <div className="relative z-10">
+                            <div className="flex items-center gap-4 mb-6">
+                                <div className="w-14 h-14 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center">
+                                    <BoxIcon className="w-7 h-7" />
+                                </div>
+                                <div>
+                                    <h3 className="text-2xl md:text-3xl font-black text-slate-800 tracking-tight">Konsep Dekorasi</h3>
+                                    <p className="text-sm font-medium text-slate-500 mt-1">{selectedProject.projectName}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Event Details Section */}
+                    <div className="portal-surface p-6 md:p-8 rounded-[2rem] border-slate-200/80 shadow-sm">
+                        <h4 className="text-lg font-black text-slate-800 mb-6 flex items-center gap-2">
+                            <span className="text-2xl">📐</span> Detail Acara Pernikahan Anda
+                        </h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-3">
+                                <label className="text-xs font-black uppercase tracking-widest text-slate-400">Ukuran Tenda</label>
+                                <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
+                                    <p className="text-base font-bold text-slate-800">{eventDetails.tentaSize || 'Belum ditentukan'}</p>
+                                </div>
+                            </div>
+                            <div className="space-y-3">
+                                <label className="text-xs font-black uppercase tracking-widest text-slate-400">Tema / Warna</label>
+                                <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
+                                    <p className="text-base font-bold text-slate-800">{eventDetails.themeColor || 'Belum ditentukan'}</p>
+                                </div>
+                            </div>
+                        </div>
+                        {eventDetails.catatan && (
+                            <div className="mt-6 space-y-3">
+                                <label className="text-xs font-black uppercase tracking-widest text-slate-400">Catatan Khusus</label>
+                                <div className="p-4 bg-blue-50 rounded-xl border border-blue-100">
+                                    <p className="text-sm font-medium text-slate-700 leading-relaxed">{eventDetails.catatan}</p>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Inventory Items Section */}
+                    {projectInventoryItems.length > 0 && (
+                        <div className="portal-surface p-6 md:p-8 rounded-[2rem] border-slate-200/80 shadow-sm">
+                            <h4 className="text-lg font-black text-slate-800 mb-6 flex items-center gap-2">
+                                <span className="text-2xl">📦</span> Properti & Item Dekorasi ({projectInventoryItems.length})
+                            </h4>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {projectInventoryItems.map((item) => (
+                                    <div key={item.itemId} className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+                                        <div className="h-40 bg-slate-100 relative">
+                                            {item.coverImage ? (
+                                                <img src={item.coverImage} alt={item.name} className="w-full h-full object-cover" />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center text-slate-300">
+                                                    <BoxIcon className="w-12 h-12 opacity-30" />
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="p-4">
+                                            <h5 className="font-bold text-sm text-slate-800 mb-1">{item.name || 'Item Dekorasi'}</h5>
+                                            <div className="flex items-center justify-between mt-2">
+                                                <span className="text-xs font-bold text-amber-600 bg-amber-50 px-3 py-1 rounded-full">
+                                                    {item.quantity} unit
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Reference Link Input Section */}
+                    <div className="portal-surface p-6 md:p-8 rounded-[2rem] border-slate-200/80 shadow-sm bg-gradient-to-br from-white to-slate-50">
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-pink-500 to-purple-600 text-white flex items-center justify-center shadow-lg shadow-pink-500/30">
+                                <LinkIcon className="w-6 h-6" />
+                            </div>
+                            <div>
+                                <h4 className="text-lg font-black text-slate-800">Bagikan Referensi Anda</h4>
+                                <p className="text-xs text-slate-500 font-medium">Kirim link Pinterest, Instagram, atau referensi lainnya</p>
+                            </div>
+                        </div>
+                        
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-bold text-slate-700 mb-2">Link Referensi Dekorasi</label>
+                                <input
+                                    type="url"
+                                    value={referenceLink}
+                                    onChange={(e) => setReferenceLink(e.target.value)}
+                                    placeholder="https://pinterest.com/... atau https://instagram.com/..."
+                                    className="w-full px-4 py-3 bg-white border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-pink-500 outline-none text-sm font-medium transition-all"
+                                />
+                                <p className="text-xs text-slate-400 mt-2 flex items-center gap-1">
+                                    <span>💡</span> Contoh: Link pin board Pinterest atau postingan Instagram
+                                </p>
+                            </div>
+                            
+                            <div className="flex items-center gap-3">
+                                <button
+                                    onClick={handleSaveReferenceLink}
+                                    disabled={isSaving || !referenceLink.trim()}
+                                    className="px-6 py-3 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-xl font-bold text-sm hover:shadow-lg hover:shadow-pink-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:scale-105 active:scale-95"
+                                >
+                                    {isSaving ? 'Menyimpan...' : '💾 Simpan Link Referensi'}
+                                </button>
+                                {saveMessage && (
+                                    <p className={`text-sm font-bold ${saveMessage.includes('✓') ? 'text-green-600' : 'text-red-600'}`}>
+                                        {saveMessage}
+                                    </p>
+                                )}
+                            </div>
+                            
+                            {eventDetails.tentaRef && (
+                                <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-xl">
+                                    <p className="text-xs font-bold text-green-700 mb-2">✓ Link Tersimpan:</p>
+                                    <a
+                                        href={eventDetails.tentaRef}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-sm font-medium text-blue-600 hover:underline break-all"
+                                    >
+                                        {eventDetails.tentaRef}
+                                    </a>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Info Box */}
+                    <div className="portal-surface p-6 rounded-2xl bg-blue-50 border border-blue-100">
+                        <div className="flex items-start gap-3">
+                            <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center flex-shrink-0 text-lg font-bold">
+                                ℹ️
+                            </div>
+                            <div>
+                                <h5 className="text-sm font-black text-blue-900 mb-1">Informasi</h5>
+                                <p className="text-xs text-blue-700 leading-relaxed">
+                                    Link referensi yang Anda kirim akan langsung tersimpan di sistem dan dapat dilihat oleh tim {profile.companyName} untuk menyiapkan dekorasi sesuai keinginan Anda.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
 const GalleryTab: React.FC<{ projects: Project[], packages: Package[] }> = ({ projects, packages }) => (
     <div className="space-y-4 md:space-y-6">
         {projects.map((project, index) => {
@@ -939,7 +1198,7 @@ const GalleryTab: React.FC<{ projects: Project[], packages: Package[] }> = ({ pr
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                             {[
                                 'Semua File Original',
-                                '30 Foto Edit',
+                                '30 Gambar Edit',
                                 'Video Highlight 1-2 Menit'
                             ].map((item, i) => (
                                 <div key={i} className="flex items-center gap-4 p-4 bg-white rounded-2xl border border-slate-100 shadow-sm group hover:border-blue-200 transition-all duration-300">

@@ -44,14 +44,14 @@ const EditPortfolioModal: React.FC<EditPortfolioModalProps> = ({ portfolio, onCl
       const refreshed = await getVendorPortfolio(portfolio.id);
       if (refreshed) setImages(refreshed.images || []);
     } catch {
-      alert('Gagal upload foto');
+      alert('Gagal upload gambar');
     } finally {
       setUploading(false);
     }
   };
 
   const handleDeleteImage = async (imgId: string) => {
-    if (!confirm('Hapus foto ini?')) return;
+    if (!confirm('Hapus gambar ini?')) return;
     const newImages = images.filter(i => i.id !== imgId);
     setImages(newImages);
     await updateVendorPortfolio(portfolio.id, { images: newImages });
@@ -83,11 +83,11 @@ const EditPortfolioModal: React.FC<EditPortfolioModalProps> = ({ portfolio, onCl
         <div>
           <div className="flex items-center justify-between mb-3">
             <span className="text-sm font-medium text-brand-text-secondary">
-              Foto-foto ({images.length})
+              Gambar-gambar ({images.length})
             </span>
             <label className="cursor-pointer flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 bg-brand-input border border-brand-border rounded-lg hover:bg-brand-border transition-colors">
               <PlusIcon className="w-3.5 h-3.5" />
-              {uploading ? 'Mengunggah...' : 'Tambah Foto'}
+              {uploading ? 'Mengunggah...' : 'Tambah Gambar'}
               <input type="file" accept="image/*" multiple className="hidden" onChange={handleAddImages} disabled={uploading} />
             </label>
           </div>
@@ -109,7 +109,7 @@ const EditPortfolioModal: React.FC<EditPortfolioModalProps> = ({ portfolio, onCl
             </div>
           ) : (
             <div className="text-center py-8 border-2 border-dashed border-brand-border rounded-xl text-brand-text-secondary text-sm">
-              Belum ada foto. Klik "Tambah Foto" untuk upload.
+              Belum ada gambar. Klik "Tambah Gambar" untuk upload.
             </div>
           )}
         </div>
@@ -205,7 +205,7 @@ const VendorProfilePage: React.FC = () => {
   };
 
   const handleDeletePortfolio = async (id: string) => {
-    if (!confirm('Yakin ingin menghapus portofolio ini beserta semua fotonya?')) return;
+    if (!confirm('Yakin ingin menghapus portofolio ini beserta semua gambarnya?')) return;
     try {
       await deleteVendorPortfolio(id);
       setPortfolios(portfolios.filter(p => p.id !== id));
@@ -373,7 +373,7 @@ const VendorProfilePage: React.FC = () => {
                   {/* Actions */}
                   <div className="mt-auto flex gap-2">
                     <label className="flex-1 cursor-pointer text-center bg-gray-50 hover:bg-gray-100 border border-gray-200 text-gray-700 py-1.5 rounded-lg text-xs font-medium transition-colors">
-                      {uploadingPortfolioId === portfolio.id ? 'Uploading...' : `📸 Upload Foto (${portfolio.images?.length || 0})`}
+                      {uploadingPortfolioId === portfolio.id ? 'Uploading...' : `📸 Upload Gambar (${portfolio.images?.length || 0})`}
                       <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => handleUploadImages(e, portfolio.id)} disabled={uploadingPortfolioId === portfolio.id} />
                     </label>
                     <button

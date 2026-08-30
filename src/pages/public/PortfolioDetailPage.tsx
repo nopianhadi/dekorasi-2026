@@ -95,7 +95,7 @@ const PortfolioDetailPage: React.FC = () => {
                         ← Kembali
                     </a>
                     <a href="#/profile" className="text-[#3d2e22] text-xl font-light tracking-wider">
-                        {vendorName || 'Photography'}
+                        {vendorName || 'Vendor Dekorasi'}
                     </a>
                     {waNumber && (
                         <a href={formatWa(waNumber)} target="_blank" rel="noopener noreferrer"
@@ -126,7 +126,7 @@ const PortfolioDetailPage: React.FC = () => {
                             <div className="w-12 h-px bg-white/50 mt-6 mx-auto"></div>
                             <p className="mt-4 text-white/70 text-sm tracking-widest"
                                 style={{ fontFamily: 'Montserrat, sans-serif' }}>
-                                {images.length} Foto
+                                {images.length} Gambar
                             </p>
                         </div>
                     </div>
@@ -173,7 +173,7 @@ const PortfolioDetailPage: React.FC = () => {
                     </div>
                 ) : (
                     <div className="text-center py-24 text-gray-400 font-light">
-                        Belum ada foto dalam portofolio ini.
+                        Belum ada gambar dalam portofolio ini.
                     </div>
                 )}
             </section>
@@ -205,7 +205,7 @@ const PortfolioDetailPage: React.FC = () => {
             <footer className="border-t border-[#e5ddd4] py-8 text-center">
                 <p className="text-xs text-[#8a7260] tracking-widest uppercase"
                     style={{ fontFamily: 'Montserrat, sans-serif' }}>
-                    © {new Date().getFullYear()} {vendorName || 'Photography'}
+                    © {new Date().getFullYear()} {vendorName || 'Vendor Dekorasi'}
                 </p>
             </footer>
 

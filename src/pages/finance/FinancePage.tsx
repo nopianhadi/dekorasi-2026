@@ -1497,8 +1497,8 @@ const Finance: React.FC<FinanceProps> = ({ transactions, setTransactions, pocket
                                                 </div>
                                             </div>
                                             <div className="mt-3 flex items-center justify-end gap-2">
-                                                <button onClick={(e) => { e.stopPropagation(); handleOpenModal('transaction', 'edit', t); }} className="button-secondary text-xs !px-3 !py-2"><PencilIcon className="w-4 h-4" /></button>
-                                                <button onClick={(e) => { e.stopPropagation(); handleDelete('transaction', t.id); }} className="button-secondary text-xs !px-3 !py-2"><Trash2Icon className="w-4 h-4" /></button>
+                                                <button onClick={(e) => { e.stopPropagation(); handleOpenModal('transaction', 'edit', t); }} className="button-secondary text-xs !px-3 !py-2" title="Edit Transaksi" aria-label={`Edit transaksi ${t.description}`}><PencilIcon className="w-4 h-4" /></button>
+                                                <button onClick={(e) => { e.stopPropagation(); handleDelete('transaction', t.id); }} className="button-secondary text-xs !px-3 !py-2" title="Hapus Transaksi" aria-label={`Hapus transaksi ${t.description}`}><Trash2Icon className="w-4 h-4" /></button>
                                             </div>
                                         </div>
                                     );
@@ -2089,7 +2089,7 @@ const Finance: React.FC<FinanceProps> = ({ transactions, setTransactions, pocket
 
     return (
         <div className="space-y-6">
-            <PageHeader title="Kelola Keuangan Vendor" subtitle="Pantau kesehatan Keuangan bisnis Anda dari transaksi hingga proyeksi masa depan.">
+            <PageHeader title="Kelola Keuangan Vendor" subtitle="Pantau kesehatan Keuangan bisnis Anda dari transaksi hingga proyeksi masa depan." icon={<DollarSignIcon className="w-6 h-6" />}>
                 <div className="flex items-center gap-2 non-printable">
                     <button onClick={() => handleOpenModal('transaction', 'add')} className="button-secondary inline-flex items-center gap-2">
                         <PlusIcon className="w-5 h-5" />Tambah Transaksi

@@ -2,8 +2,8 @@ import { supabase } from '../lib/supabaseClient';
 import { VendorProfile } from '../types';
 
 const DEFAULT_PROFILE: Omit<VendorProfile, 'id' | 'created_at' | 'updated_at'> = {
-    hero_title: 'Capture Your Best Moments',
-    hero_subtitle: 'Professional Photography & Videography Services',
+    hero_title: 'Wujudkan Momen Terbaik Anda',
+    hero_subtitle: 'Layanan Vendor Dekorasi Profesional',
     whatsapp_number: '',
     info_images: [],
 };

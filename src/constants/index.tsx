@@ -641,6 +641,7 @@ export const NAV_ITEMS = [
     { view: ViewType.PROJECTS, label: 'Acara Pernikahan', icon: FolderKanbanIcon },
     { view: ViewType.CONTRACTS, label: 'Kontrak Digital', icon: FileTextIcon },
     { view: ViewType.TEAM, label: 'Tim / Vendor', icon: BriefcaseIcon },
+    { view: ViewType.INVENTORY, label: 'Inventaris Dekorasi', icon: LayoutGridIcon },
     { view: ViewType.FINANCE, label: 'Keuangan', icon: DollarSignIcon },
     { view: ViewType.PACKAGES, label: 'Layanan / Package', icon: PackageIcon },
     { view: ViewType.PROMO_CODES, label: 'Voucher', icon: LightbulbIcon },

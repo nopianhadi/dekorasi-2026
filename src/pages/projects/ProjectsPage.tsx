@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Project, PaymentStatus, TeamMember, Client, Package, TeamProjectPayment, Transaction, TransactionType, AssignedTeamMember, Profile, NavigationAction, AddOn, PrintingItem, Card, ProjectStatusConfig, SubStatusConfig, CustomCost, FinancialPocket } from '../../types';
+import { Project, PaymentStatus, TeamMember, Client, Package, TeamProjectPayment, Transaction, TransactionType, AssignedTeamMember, Profile, NavigationAction, AddOn, PrintingItem, Card, ProjectStatusConfig, SubStatusConfig, CustomCost, FinancialPocket, InventoryItem, ProjectInventoryItem } from '../../types';
 import PageHeader from '../../layouts/PageHeader';
 import Modal from '../../shared/ui/Modal';
 import StatCard from '../../shared/ui/StatCard';
 import StatCardModal from '../../shared/ui/StatCardModal';
 import DonutChart from '../../shared/ui/DonutChart';
 import { EyeIcon, ListIcon, LayoutGridIcon, FolderKanbanIcon, AlertCircleIcon, CalendarIcon, CheckSquareIcon, ClockIcon, UsersIcon, ArrowUpIcon, DollarSignIcon, MessageSquareIcon, BriefcaseIcon, LightbulbIcon, ArrowUpIcon as ArrowUpIconStat, ArrowDownIcon as ArrowDownIconStat } from '../../constants';
-import { ClipboardListIcon, FileTextIcon, PencilIcon, Share2Icon, ArrowDownIcon, CheckCircleIcon, PlusIcon, Trash2Icon, SendIcon, ChevronRightIcon, ChevronLeftIcon, UserIcon } from 'lucide-react';
+import { ClipboardListIcon, FileTextIcon, PencilIcon, Share2Icon, ArrowDownIcon, CheckCircleIcon, PlusIcon, Trash2Icon, SendIcon, ChevronRightIcon, ChevronLeftIcon, UserIcon, BoxIcon, PackageIcon } from 'lucide-react';
 import { listChecklistByProject, upsertChecklistItems, deleteChecklistItem, initializeDefaultChecklist, DEFAULT_CHECKLIST_TEMPLATES, setChecklistItemCompleted, updateChecklistItemFields, updateChecklistItemText, renameChecklistCategory, deleteChecklistItemsByProjectAndCategory } from '../../services/weddingDayChecklist';
 import { createProjectWithRelations, updateProject as updateProjectInDb, deleteProject as deleteProjectInDb, sanitizeProjectData, getProjectWithRelations } from '../../services/projects';
 
@@ -876,6 +876,7 @@ interface ProjectDetailModalProps {
     clients: Client[];
     profile: Profile;
     showNotification: (message: string) => void;
+    projects: Project[]; // Added for DekorasiTab conflict checking
     setProjects: React.Dispatch<React.SetStateAction<Project[]>>;
     onClose: () => void;
     handleOpenForm: (mode: 'edit', project: Project) => void;
@@ -888,8 +889,723 @@ interface ProjectDetailModalProps {
     onOpenSharePreview: (data: { title: string; message: string; phone?: string | null }) => void;
 };
 
-const ProjectDetailModal: React.FC<ProjectDetailModalProps> = ({ selectedProject, setSelectedProject, teamMembers, clients, profile, showNotification, setProjects, onClose, handleOpenForm, handleProjectDelete, handleOpenBriefingModal, packages, transactions, teamProjectPayments, cards, onOpenSharePreview }) => {
-    const [detailTab, setDetailTab] = useState<'details' | 'files' | 'checklist'>('details');
+// --- Komponen Tab Kebutuhan Dekorasi ---
+interface DekorasiTabProps {
+    selectedProject: Project;
+    projects: Project[]; // All projects for conflict checking
+    setProjects: React.Dispatch<React.SetStateAction<Project[]>>;
+    showNotification: (msg: string) => void;
+}
+
+const DekorasiTab: React.FC<DekorasiTabProps> = ({ selectedProject, projects, setProjects, showNotification }) => {
+    const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
+    const [loadingInventory, setLoadingInventory] = useState(true);
+    const [showTemplateModal, setShowTemplateModal] = useState(false);
+    const [applyingTemplate, setApplyingTemplate] = useState(false);
+    const [showSuratJalanModal, setShowSuratJalanModal] = useState(false);
+
+    // State for event detail fields
+    const eventDetails = selectedProject.eventDetails || {};
+    const [tentaSize, setTentaSize] = useState<string>(eventDetails.tentaSize || '');
+    const [tentaRef, setTentaRef] = useState<string>(eventDetails.tentaRef || '');
+    const [themeColor, setThemeColor] = useState<string>(eventDetails.themeColor || '');
+    const [catatan, setCatatan] = useState<string>(eventDetails.catatan || '');
+    const [savingDetails, setSavingDetails] = useState(false);
+
+    // Project inventory items state (items tagged to this project)
+    const projectInventoryItems: ProjectInventoryItem[] = selectedProject.inventoryItems || [];
+
+    const handlePrintSuratJalan = () => {
+        window.print();
+    };
+
+    // Decoration Package Templates (Static Presets)
+    const decorationTemplates = [
+        {
+            id: 'standard-akad',
+            name: 'Paket Standard Akad',
+            description: 'Dekorasi sederhana untuk acara akad nikah intimate',
+            icon: '💒',
+            items: [
+                { category: 'Tenda', name: 'Tenda 5x5', quantity: 1 },
+                { category: 'Kursi', name: 'Kursi Tiffany', quantity: 50 },
+                { category: 'Meja', name: 'Meja Bundar', quantity: 5 },
+                { category: 'Dekorasi', name: 'Standing Flower', quantity: 4 },
+                { category: 'Lighting', name: 'Lampu String', quantity: 2 },
+            ]
+        },
+        {
+            id: 'resepsi-mewah',
+            name: 'Paket Resepsi Mewah',
+            description: 'Dekorasi premium untuk resepsi pernikahan grand',
+            icon: '👑',
+            items: [
+                { category: 'Tenda', name: 'Tenda 10x20', quantity: 2 },
+                { category: 'Kursi', name: 'Kursi Tiffany', quantity: 200 },
+                { category: 'Meja', name: 'Meja Bundar', quantity: 20 },
+                { category: 'Dekorasi', name: 'Standing Flower', quantity: 12 },
+                { category: 'Dekorasi', name: 'Backdrop Utama', quantity: 1 },
+                { category: 'Lighting', name: 'Lampu Hias Premium', quantity: 10 },
+                { category: 'Properti', name: 'Karpet Merah', quantity: 1 },
+            ]
+        },
+        {
+            id: 'outdoor-garden',
+            name: 'Paket Outdoor Garden',
+            description: 'Dekorasi natural untuk pernikahan taman outdoor',
+            icon: '🌿',
+            items: [
+                { category: 'Tenda', name: 'Tenda Transparan', quantity: 1 },
+                { category: 'Kursi', name: 'Kursi Kayu Natural', quantity: 100 },
+                { category: 'Meja', name: 'Meja Kayu Rustic', quantity: 10 },
+                { category: 'Dekorasi', name: 'Pot Bunga', quantity: 20 },
+                { category: 'Dekorasi', name: 'Arch Flower', quantity: 1 },
+                { category: 'Lighting', name: 'Fairy Light', quantity: 5 },
+            ]
+        },
+        {
+            id: 'modern-minimalis',
+            name: 'Paket Modern Minimalis',
+            description: 'Dekorasi kontemporer dengan konsep clean & simple',
+            icon: '✨',
+            items: [
+                { category: 'Tenda', name: 'Tenda Putih', quantity: 1 },
+                { category: 'Kursi', name: 'Kursi Modern', quantity: 80 },
+                { category: 'Meja', name: 'Meja Kotak', quantity: 8 },
+                { category: 'Dekorasi', name: 'Backdrop Minimalis', quantity: 1 },
+                { category: 'Lighting', name: 'LED Strip', quantity: 8 },
+                { category: 'Properti', name: 'Neon Sign Custom', quantity: 1 },
+            ]
+        }
+    ];
+
+    // Calculate item usage on the same date for conflict checking
+    const calculateItemUsageOnDate = (itemId: string, eventDate: string): number => {
+        let totalUsed = 0;
+        const targetDate = new Date(eventDate).toDateString();
+        
+        // Filter active projects on the same date (excluding current project and cancelled/completed)
+        const conflictingProjects = projects.filter(p => 
+            p.id !== selectedProject.id && 
+            p.status !== 'Selesai' && 
+            p.status !== 'Dibatalkan' &&
+            new Date(p.date).toDateString() === targetDate
+        );
+
+        conflictingProjects.forEach(project => {
+            const itemInProject = project.inventoryItems?.find(i => i.itemId === itemId);
+            if (itemInProject) {
+                totalUsed += itemInProject.quantity;
+            }
+        });
+
+        return totalUsed;
+    };
+
+    const handleApplyTemplate = async (template: typeof decorationTemplates[0]) => {
+        setApplyingTemplate(true);
+        try {
+            const newItems: ProjectInventoryItem[] = [];
+            const warnings: string[] = [];
+            let itemsAdded = 0;
+
+            // Match template items with inventory items by category and name
+            for (const templateItem of template.items) {
+                const matchedItem = inventoryItems.find(
+                    inv => inv.category.toLowerCase() === templateItem.category.toLowerCase() && 
+                           inv.name.toLowerCase().includes(templateItem.name.toLowerCase())
+                );
+
+                if (matchedItem) {
+                    // Check conflict
+                    const usageOnSameDate = calculateItemUsageOnDate(matchedItem.id, selectedProject.date);
+                    const availableOnDate = matchedItem.totalQuantity - usageOnSameDate;
+
+                    if (templateItem.quantity <= availableOnDate) {
+                        newItems.push({
+                            itemId: matchedItem.id,
+                            quantity: templateItem.quantity,
+                            name: matchedItem.name,
+                            coverImage: matchedItem.coverImage,
+                        });
+                        itemsAdded++;
+                    } else {
+                        warnings.push(`${matchedItem.name}: hanya ${availableOnDate} tersedia (diminta ${templateItem.quantity})`);
+                    }
+                } else {
+                    warnings.push(`${templateItem.name} tidak ditemukan di inventaris`);
+                }
+            }
+
+            if (newItems.length === 0) {
+                showNotification('❌ Tidak ada item dari template yang bisa ditambahkan');
+                setApplyingTemplate(false);
+                return;
+            }
+
+            // Merge with existing items (don't duplicate)
+            const existingItems = selectedProject.inventoryItems || [];
+            const mergedItems = [...existingItems];
+            
+            newItems.forEach(newItem => {
+                const existingIndex = mergedItems.findIndex(i => i.itemId === newItem.itemId);
+                if (existingIndex >= 0) {
+                    // Update quantity if already exists
+                    mergedItems[existingIndex].quantity += newItem.quantity;
+                } else {
+                    mergedItems.push(newItem);
+                }
+            });
+
+            const { updateProject } = await import('../../services/projects');
+            await updateProject(selectedProject.id, { inventoryItems: mergedItems });
+            setProjects(prev => prev.map(p => p.id === selectedProject.id ? { ...p, inventoryItems: mergedItems } : p));
+
+            let message = `✓ Template "${template.name}" berhasil diterapkan! ${itemsAdded} item ditambahkan.`;
+            if (warnings.length > 0) {
+                message += ` Peringatan: ${warnings.slice(0, 2).join(', ')}${warnings.length > 2 ? '...' : ''}`;
+            }
+            showNotification(message);
+            setShowTemplateModal(false);
+        } catch (e) {
+            showNotification('Gagal menerapkan template');
+        } finally {
+            setApplyingTemplate(false);
+        }
+    };
+
+    useEffect(() => {
+        const fetchInventory = async () => {
+            try {
+                const { listInventoryItems } = await import('../../services/inventoryItems');
+                const items = await listInventoryItems();
+                setInventoryItems(items);
+            } catch (e) {
+                console.error('Failed to load inventory:', e);
+            } finally {
+                setLoadingInventory(false);
+            }
+        };
+        fetchInventory();
+    }, []);
+
+    const handleSaveEventDetails = async () => {
+        setSavingDetails(true);
+        try {
+            const { updateProject } = await import('../../services/projects');
+            const updatedDetails = { tentaSize, tentaRef, themeColor, catatan };
+            const updated = await updateProject(selectedProject.id, { eventDetails: updatedDetails });
+            setProjects(prev => prev.map(p => p.id === selectedProject.id ? { ...p, eventDetails: updatedDetails } : p));
+            showNotification('Detail acara berhasil disimpan');
+        } catch (e) {
+            showNotification('Gagal menyimpan detail acara');
+        } finally {
+            setSavingDetails(false);
+        }
+    };
+
+    const handleAddInventoryItem = async (itemId: string, quantity: number) => {
+        const existingItems = selectedProject.inventoryItems || [];
+        const alreadyAdded = existingItems.find(i => i.itemId === itemId);
+        const inventoryItem = inventoryItems.find(i => i.id === itemId);
+        if (!inventoryItem) return;
+
+        // Conflict checking: Calculate usage on the same date
+        const usageOnSameDate = calculateItemUsageOnDate(itemId, selectedProject.date);
+        const currentProjectQty = alreadyAdded?.quantity || 0;
+        const availableOnDate = inventoryItem.totalQuantity - usageOnSameDate + currentProjectQty;
+
+        // Check if requested quantity exceeds available stock on that date
+        if (quantity > availableOnDate) {
+            showNotification(`⚠️ KONFLIK JADWAL: Item "${inventoryItem.name}" hanya tersedia ${availableOnDate} unit pada tanggal ${new Date(selectedProject.date).toLocaleDateString('id-ID')}. Sudah digunakan ${usageOnSameDate} unit di proyek lain.`);
+            return;
+        }
+
+        let updatedItems: ProjectInventoryItem[];
+        if (alreadyAdded) {
+            updatedItems = existingItems.map(i => i.itemId === itemId ? { ...i, quantity } : i);
+        } else {
+            updatedItems = [...existingItems, {
+                itemId,
+                quantity,
+                name: inventoryItem.name,
+                coverImage: inventoryItem.coverImage,
+            }];
+        }
+
+        try {
+            const { updateProject } = await import('../../services/projects');
+            await updateProject(selectedProject.id, { inventoryItems: updatedItems });
+            setProjects(prev => prev.map(p => p.id === selectedProject.id ? { ...p, inventoryItems: updatedItems } : p));
+            showNotification(`${inventoryItem.name} berhasil ditambahkan ke proyek`);
+        } catch (e) {
+            showNotification('Gagal menambahkan item');
+        }
+    };
+
+    const handleRemoveInventoryItem = async (itemId: string) => {
+        const updatedItems = (selectedProject.inventoryItems || []).filter(i => i.itemId !== itemId);
+        try {
+            const { updateProject } = await import('../../services/projects');
+            await updateProject(selectedProject.id, { inventoryItems: updatedItems });
+            setProjects(prev => prev.map(p => p.id === selectedProject.id ? { ...p, inventoryItems: updatedItems } : p));
+            showNotification('Item berhasil dihapus dari proyek');
+        } catch (e) {
+            showNotification('Gagal menghapus item');
+        }
+    };
+
+    return (
+        <div className="space-y-6">
+            {/* Detail Acara Section */}
+            <div className="bg-brand-surface border border-brand-border rounded-2xl p-5">
+                <h3 className="text-lg font-bold text-brand-text-primary mb-4 flex items-center gap-2">
+                    <span className="text-2xl">📐</span> Detail Acara & Referensi
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label className="block text-sm font-medium text-brand-text-secondary mb-1">Ukuran Tenda</label>
+                        <input type="text" value={tentaSize} onChange={e => setTentaSize(e.target.value)}
+                            placeholder="Contoh: 10x20 meter, 200 pax"
+                            className="w-full px-3 py-2 rounded-xl bg-brand-input border border-brand-border focus:ring-2 focus:ring-brand-accent outline-none text-sm" />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-brand-text-secondary mb-1">Tema / Warna</label>
+                        <input type="text" value={themeColor} onChange={e => setThemeColor(e.target.value)}
+                            placeholder="Contoh: Rustic, Romantic, Gold & White"
+                            className="w-full px-3 py-2 rounded-xl bg-brand-input border border-brand-border focus:ring-2 focus:ring-brand-accent outline-none text-sm" />
+                    </div>
+                    <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-brand-text-secondary mb-1">Link Referensi Dekorasi</label>
+                        <input type="url" value={tentaRef} onChange={e => setTentaRef(e.target.value)}
+                            placeholder="Contoh: https://pinterest.com/..."
+                            className="w-full px-3 py-2 rounded-xl bg-brand-input border border-brand-border focus:ring-2 focus:ring-brand-accent outline-none text-sm" />
+                    </div>
+                    <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-brand-text-secondary mb-1">Catatan Khusus Acara</label>
+                        <textarea value={catatan} onChange={e => setCatatan(e.target.value)}
+                            rows={3} placeholder="Catatan tambahan untuk tim..."
+                            className="w-full px-3 py-2 rounded-xl bg-brand-input border border-brand-border focus:ring-2 focus:ring-brand-accent outline-none text-sm" />
+                    </div>
+                </div>
+                <div className="mt-4 flex justify-end">
+                    <button onClick={handleSaveEventDetails} disabled={savingDetails}
+                        className="px-5 py-2 bg-brand-accent text-white rounded-xl font-semibold text-sm hover:bg-brand-accent/90 disabled:opacity-50 transition-colors">
+                        {savingDetails ? 'Menyimpan...' : 'Simpan Detail Acara'}
+                    </button>
+                </div>
+            </div>
+
+            {/* Item Yang Sudah Di-tag */}
+            {projectInventoryItems.length > 0 && (
+                <div className="bg-brand-surface border border-brand-border rounded-2xl p-5">
+                    <div className="flex items-center justify-between mb-3">
+                        <h3 className="text-lg font-bold text-brand-text-primary flex items-center gap-2">
+                            <span className="text-2xl">📦</span> Item Dekorasi Acara Ini ({projectInventoryItems.length})
+                        </h3>
+                        <button
+                            onClick={() => setShowSuratJalanModal(true)}
+                            className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-xl font-semibold text-sm flex items-center gap-2 transition-colors shadow-md hover:shadow-lg"
+                        >
+                            <FileTextIcon className="w-4 h-4" />
+                            Cetak Surat Jalan
+                        </button>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {projectInventoryItems.map(pi => {
+                            const detail = inventoryItems.find(i => i.id === pi.itemId);
+                            return (
+                                <div key={pi.itemId} className="flex items-center gap-3 p-3 bg-brand-bg rounded-xl border border-brand-border">
+                                    <div className="w-12 h-12 rounded-lg overflow-hidden border border-brand-border flex-shrink-0 bg-gray-100">
+                                        {pi.coverImage ? (
+                                            <img src={pi.coverImage} alt={pi.name} className="w-full h-full object-cover" />
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center text-gray-300">
+                                                <BoxIcon className="w-5 h-5" />
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="flex-grow">
+                                        <div className="font-semibold text-sm text-brand-text-primary">{pi.name || detail?.name || 'Item'}</div>
+                                        <div className="text-xs text-brand-text-secondary">{detail?.category}</div>
+                                        <div className="text-xs font-bold text-brand-accent mt-0.5">Jumlah: {pi.quantity} unit</div>
+                                    </div>
+                                    <button onClick={() => handleRemoveInventoryItem(pi.itemId)}
+                                        className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+                                        <Trash2Icon className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
+
+            {/* Katalog Inventaris */}
+            <div className="bg-brand-surface border border-brand-border rounded-2xl p-5">
+                <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-bold text-brand-text-primary flex items-center gap-2">
+                        <span className="text-2xl">🏷️</span> Tag Item dari Inventaris
+                    </h3>
+                    <button
+                        onClick={() => setShowTemplateModal(true)}
+                        className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-semibold text-sm flex items-center gap-2 transition-colors shadow-md hover:shadow-lg"
+                    >
+                        <PackageIcon className="w-4 h-4" />
+                        Gunakan Template
+                    </button>
+                </div>
+                {loadingInventory ? (
+                    <div className="text-center py-6 text-brand-text-secondary text-sm">Memuat inventaris...</div>
+                ) : inventoryItems.length === 0 ? (
+                    <div className="text-center py-6 text-brand-text-secondary text-sm">
+                        Belum ada item inventaris. Tambahkan dulu di menu <strong>Inventaris Dekorasi</strong>.
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {inventoryItems.map(item => {
+                            const alreadyTagged = projectInventoryItems.find(p => p.itemId === item.id);
+                            const usageOnSameDate = calculateItemUsageOnDate(item.id, selectedProject.date);
+                            const currentProjectQty = alreadyTagged?.quantity || 0;
+                            const availableOnDate = item.totalQuantity - usageOnSameDate + currentProjectQty;
+                            
+                            return (
+                                <InventoryItemCard
+                                    key={item.id}
+                                    item={item}
+                                    taggedQty={alreadyTagged?.quantity}
+                                    onAdd={(qty) => handleAddInventoryItem(item.id, qty)}
+                                    usageOnSameDate={usageOnSameDate}
+                                    availableOnDate={availableOnDate}
+                                    eventDate={selectedProject.date}
+                                />
+                            );
+                        })}
+                    </div>
+                )}
+            </div>
+
+            {/* Template Selection Modal */}
+            <Modal isOpen={showTemplateModal} onClose={() => setShowTemplateModal(false)} title="Pilih Template Dekorasi" size="3xl">
+                <div className="p-4 space-y-4">
+                    <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
+                        <div className="flex items-start gap-3">
+                            <span className="text-2xl">💡</span>
+                            <div className="text-sm text-blue-800">
+                                <p className="font-bold mb-1">Tentang Template Dekorasi</p>
+                                <p>Template akan otomatis menambahkan bundel item dekorasi standar ke proyek Anda. Item yang cocok dari inventaris akan di-tag sesuai kuantitas template.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {decorationTemplates.map((template) => (
+                            <div key={template.id} className="border-2 border-brand-border rounded-2xl p-5 hover:border-brand-accent hover:shadow-lg transition-all cursor-pointer group">
+                                <div className="flex items-start justify-between mb-3">
+                                    <div>
+                                        <div className="text-3xl mb-2">{template.icon}</div>
+                                        <h4 className="font-bold text-lg text-brand-text-primary group-hover:text-brand-accent transition-colors">{template.name}</h4>
+                                        <p className="text-xs text-brand-text-secondary mt-1">{template.description}</p>
+                                    </div>
+                                </div>
+
+                                <div className="mt-4 mb-4">
+                                    <p className="text-xs font-bold text-brand-text-secondary uppercase mb-2">Isi Paket:</p>
+                                    <div className="space-y-1 max-h-32 overflow-y-auto">
+                                        {template.items.map((item, idx) => (
+                                            <div key={idx} className="flex justify-between items-center text-xs py-1 px-2 bg-brand-bg rounded-lg">
+                                                <span className="text-brand-text-primary">
+                                                    <span className="font-semibold">{item.name}</span>
+                                                    <span className="text-brand-text-secondary ml-1">({item.category})</span>
+                                                </span>
+                                                <span className="font-bold text-brand-accent">{item.quantity}x</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <button
+                                    onClick={() => handleApplyTemplate(template)}
+                                    disabled={applyingTemplate}
+                                    className="w-full px-4 py-2.5 bg-brand-accent hover:bg-brand-accent/90 text-white rounded-xl font-semibold text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    {applyingTemplate ? 'Menerapkan...' : 'Terapkan Template Ini'}
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="mt-6 pt-4 border-t border-brand-border">
+                        <button
+                            onClick={() => setShowTemplateModal(false)}
+                            className="w-full px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-semibold text-sm transition-colors"
+                        >
+                            Tutup
+                        </button>
+                    </div>
+                </div>
+            </Modal>
+
+            {/* Surat Jalan Modal */}
+            <Modal isOpen={showSuratJalanModal} onClose={() => setShowSuratJalanModal(false)} title="Surat Jalan Logistik Dekorasi" size="4xl">
+                <div className="p-6">
+                    {/* Print Styles */}
+                    <style>{`
+                        @media print {
+                            body * { visibility: hidden; }
+                            #surat-jalan-content, #surat-jalan-content * { visibility: visible; }
+                            #surat-jalan-content { 
+                                position: absolute; 
+                                left: 0; 
+                                top: 0; 
+                                width: 100%;
+                                padding: 20mm;
+                            }
+                            .no-print { display: none !important; }
+                            .print-break { page-break-after: always; }
+                        }
+                    `}</style>
+
+                    {/* Action Buttons */}
+                    <div className="flex gap-3 mb-6 no-print">
+                        <button
+                            onClick={handlePrintSuratJalan}
+                            className="flex-1 px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold flex items-center justify-center gap-2 transition-colors"
+                        >
+                            <FileTextIcon className="w-5 h-5" />
+                            Cetak / Print (Ctrl+P)
+                        </button>
+                        <button
+                            onClick={() => setShowSuratJalanModal(false)}
+                            className="px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-semibold transition-colors"
+                        >
+                            Tutup
+                        </button>
+                    </div>
+
+                    {/* Surat Jalan Content */}
+                    <div id="surat-jalan-content" className="bg-white border-2 border-gray-300 rounded-xl p-8 space-y-6">
+                        {/* Header */}
+                        <div className="text-center border-b-2 border-gray-800 pb-4">
+                            <h1 className="text-3xl font-black text-gray-900 mb-2">SURAT JALAN LOGISTIK</h1>
+                            <h2 className="text-xl font-bold text-gray-700">Dekorasi & Properti Acara</h2>
+                        </div>
+
+                        {/* Project Details */}
+                        <div className="grid grid-cols-2 gap-6 border-b border-gray-300 pb-6">
+                            <div className="space-y-3">
+                                <div>
+                                    <p className="text-xs font-bold text-gray-500 uppercase mb-1">Nama Acara</p>
+                                    <p className="text-base font-bold text-gray-900">{selectedProject.projectName}</p>
+                                </div>
+                                <div>
+                                    <p className="text-xs font-bold text-gray-500 uppercase mb-1">Nama Klien</p>
+                                    <p className="text-base font-semibold text-gray-800">{selectedProject.clientName}</p>
+                                </div>
+                                <div>
+                                    <p className="text-xs font-bold text-gray-500 uppercase mb-1">Tanggal Loading</p>
+                                    <p className="text-base font-semibold text-gray-800">
+                                        {new Date(selectedProject.date).toLocaleDateString('id-ID', { 
+                                            weekday: 'long', 
+                                            year: 'numeric', 
+                                            month: 'long', 
+                                            day: 'numeric' 
+                                        })}
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="space-y-3">
+                                <div>
+                                    <p className="text-xs font-bold text-gray-500 uppercase mb-1">Lokasi Acara</p>
+                                    <p className="text-base font-semibold text-gray-800">{selectedProject.location}</p>
+                                </div>
+                                {selectedProject.address && (
+                                    <div>
+                                        <p className="text-xs font-bold text-gray-500 uppercase mb-1">Alamat Lengkap</p>
+                                        <p className="text-sm text-gray-700">{selectedProject.address}</p>
+                                    </div>
+                                )}
+                                {eventDetails.tentaSize && (
+                                    <div>
+                                        <p className="text-xs font-bold text-gray-500 uppercase mb-1">Ukuran Tenda</p>
+                                        <p className="text-sm text-gray-700">{eventDetails.tentaSize}</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Items Checklist Table */}
+                        <div>
+                            <h3 className="text-lg font-black text-gray-900 mb-4 flex items-center gap-2">
+                                <span>📋</span> DAFTAR BARANG YANG DIBAWA
+                            </h3>
+                            <table className="w-full border-2 border-gray-800">
+                                <thead>
+                                    <tr className="bg-gray-800 text-white">
+                                        <th className="border border-gray-700 px-3 py-3 text-left text-sm font-bold w-12">NO</th>
+                                        <th className="border border-gray-700 px-3 py-3 text-left text-sm font-bold">NAMA BARANG</th>
+                                        <th className="border border-gray-700 px-3 py-3 text-center text-sm font-bold w-24">JUMLAH</th>
+                                        <th className="border border-gray-700 px-3 py-3 text-center text-sm font-bold w-20">✓</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {projectInventoryItems.map((item, index) => {
+                                        const detail = inventoryItems.find(i => i.id === item.itemId);
+                                        return (
+                                            <tr key={item.itemId} className={index % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
+                                                <td className="border border-gray-300 px-3 py-3 text-center font-bold text-gray-700">
+                                                    {index + 1}
+                                                </td>
+                                                <td className="border border-gray-300 px-3 py-3">
+                                                    <div className="font-bold text-gray-900">{item.name || detail?.name}</div>
+                                                    {detail?.category && (
+                                                        <div className="text-xs text-gray-500 mt-1">Kategori: {detail.category}</div>
+                                                    )}
+                                                </td>
+                                                <td className="border border-gray-300 px-3 py-3 text-center">
+                                                    <span className="font-black text-lg text-gray-900">{item.quantity}</span>
+                                                    <span className="text-sm text-gray-600 ml-1">unit</span>
+                                                </td>
+                                                <td className="border border-gray-300 px-3 py-3 bg-yellow-50">
+                                                    {/* Empty checkbox for manual checking */}
+                                                    <div className="w-8 h-8 border-2 border-gray-400 mx-auto rounded"></div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                                <tfoot>
+                                    <tr className="bg-gray-100">
+                                        <td colSpan={2} className="border border-gray-300 px-3 py-3 text-right font-bold text-gray-900">
+                                            TOTAL ITEM:
+                                        </td>
+                                        <td className="border border-gray-300 px-3 py-3 text-center font-black text-xl text-gray-900">
+                                            {projectInventoryItems.reduce((sum, item) => sum + item.quantity, 0)}
+                                        </td>
+                                        <td className="border border-gray-300 px-3 py-3"></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+
+                        {/* Notes Section */}
+                        {eventDetails.catatan && (
+                            <div className="border-2 border-yellow-400 bg-yellow-50 rounded-lg p-4">
+                                <p className="text-xs font-bold text-yellow-900 uppercase mb-2">⚠️ CATATAN PENTING:</p>
+                                <p className="text-sm text-yellow-900 font-medium">{eventDetails.catatan}</p>
+                            </div>
+                        )}
+
+                        {/* Signature Section */}
+                        <div className="grid grid-cols-3 gap-6 pt-8 mt-8 border-t-2 border-gray-300">
+                            <div className="text-center">
+                                <p className="text-sm font-bold text-gray-700 mb-16">Diserahkan Oleh,</p>
+                                <div className="border-t-2 border-gray-800 pt-2">
+                                    <p className="text-sm font-bold text-gray-900">Koordinator Logistik</p>
+                                </div>
+                            </div>
+                            <div className="text-center">
+                                <p className="text-sm font-bold text-gray-700 mb-16">Diterima Oleh,</p>
+                                <div className="border-t-2 border-gray-800 pt-2">
+                                    <p className="text-sm font-bold text-gray-900">Kru Lapangan</p>
+                                </div>
+                            </div>
+                            <div className="text-center">
+                                <p className="text-sm font-bold text-gray-700 mb-16">Mengetahui,</p>
+                                <div className="border-t-2 border-gray-800 pt-2">
+                                    <p className="text-sm font-bold text-gray-900">PIC Acara</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Footer */}
+                        <div className="text-center text-xs text-gray-500 mt-6 pt-4 border-t border-gray-300">
+                            <p>Dokumen ini dicetak pada {new Date().toLocaleDateString('id-ID', { 
+                                year: 'numeric', 
+                                month: 'long', 
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                            })}</p>
+                            <p className="mt-1 font-semibold">Pastikan semua item tercatat dengan benar sebelum pengiriman</p>
+                        </div>
+                    </div>
+                </div>
+            </Modal>
+        </div>
+    );
+};
+
+const InventoryItemCard: React.FC<{ 
+    item: InventoryItem; 
+    taggedQty?: number; 
+    onAdd: (qty: number) => void;
+    usageOnSameDate: number;
+    availableOnDate: number;
+    eventDate: string;
+}> = ({ item, taggedQty, onAdd, usageOnSameDate, availableOnDate, eventDate }) => {
+    const [qty, setQty] = useState(taggedQty || 1);
+    const hasConflict = availableOnDate < qty;
+    const isLowStock = availableOnDate <= 3 && availableOnDate > 0;
+    
+    return (
+        <div className={`flex flex-col gap-3 p-3 bg-brand-bg rounded-xl border ${hasConflict ? 'border-red-300 bg-red-50' : isLowStock ? 'border-yellow-300 bg-yellow-50' : 'border-brand-border'}`}>
+            <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-lg overflow-hidden border border-brand-border flex-shrink-0 bg-gray-100">
+                    {item.coverImage ? (
+                        <img src={item.coverImage} alt={item.name} className="w-full h-full object-cover" />
+                    ) : (
+                        <div className="w-full h-full flex items-center justify-center text-gray-300">
+                            <BoxIcon className="w-5 h-5" />
+                        </div>
+                    )}
+                </div>
+            <div className="flex-grow">
+                <div className="font-semibold text-sm text-brand-text-primary">{item.name}</div>
+                <div className="text-xs text-brand-text-secondary">{item.category} • Total Stok: {item.totalQuantity}</div>
+                {taggedQty && <div className="text-xs text-brand-accent font-semibold">✓ Sudah ditag: {taggedQty}</div>}
+            </div>
+            <div className="flex items-center gap-1">
+                <input type="number" min="1" max={item.totalQuantity} value={qty} onChange={e => setQty(Number(e.target.value))}
+                    className="w-16 px-2 py-1 text-sm border border-brand-border rounded-lg bg-brand-input text-center" />
+                <button onClick={() => onAdd(qty)}
+                    className={`px-2 py-1.5 rounded-lg text-xs font-bold transition-colors ${taggedQty ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' : 'bg-brand-accent text-white hover:bg-brand-accent/90'}`}>
+                    {taggedQty ? 'Ubah' : 'Tag'}
+                </button>
+            </div>
+            </div>
+            
+            {/* Conflict/Availability Warning */}
+            {usageOnSameDate > 0 && (
+                <div className={`text-xs p-2 rounded-lg ${hasConflict ? 'bg-red-100 border border-red-200 text-red-800' : isLowStock ? 'bg-yellow-100 border border-yellow-200 text-yellow-800' : 'bg-blue-50 border border-blue-100 text-blue-700'}`}>
+                    <div className="flex items-start gap-2">
+                        <span className="text-base">{hasConflict ? '⚠️' : isLowStock ? '⚡' : 'ℹ️'}</span>
+                        <div className="flex-1">
+                            <div className="font-bold mb-1">
+                                {hasConflict ? 'KONFLIK JADWAL!' : isLowStock ? 'Stok Terbatas' : 'Info Ketersediaan'}
+                            </div>
+                            <div className="space-y-0.5">
+                                <div>📅 Tanggal: {new Date(eventDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
+                                <div>📦 Digunakan proyek lain: <span className="font-bold">{usageOnSameDate} unit</span></div>
+                                <div className={`font-bold ${hasConflict ? 'text-red-900' : isLowStock ? 'text-yellow-900' : ''}`}>
+                                    ✓ Tersedia pada tanggal ini: <span className="text-base">{availableOnDate} unit</span>
+                                </div>
+                            </div>
+                            {hasConflict && (
+                                <div className="mt-1 pt-1 border-t border-red-200 text-red-900 font-bold">
+                                    Kurangi jumlah atau koordinasikan dengan tim!
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
+const ProjectDetailModal: React.FC<ProjectDetailModalProps> = ({ selectedProject, setSelectedProject, teamMembers, clients, profile, showNotification, projects, setProjects, onClose, handleOpenForm, handleProjectDelete, handleOpenBriefingModal, packages, transactions, teamProjectPayments, cards, onOpenSharePreview }) => {
+    const [detailTab, setDetailTab] = useState<'details' | 'files' | 'checklist' | 'dekorasi'>('details');
     const [newCharge, setNewCharge] = useState({ name: '', amount: '' });
     const [isEditingFinalLink, setIsEditingFinalLink] = useState(false);
     const [tempFinalLink, setTempFinalLink] = useState('');
@@ -1411,6 +2127,7 @@ const ProjectDetailModal: React.FC<ProjectDetailModalProps> = ({ selectedProject
                 <nav className="-mb-px flex space-x-6">
                     <button onClick={() => setDetailTab('details')} className={`shrink-0 inline-flex items-center gap-2 py-3 px-1 border-b-2 font-medium text-sm transition-colors ${detailTab === 'details' ? 'border-brand-accent text-brand-accent' : 'border-transparent text-brand-text-secondary hover:text-brand-text-light'}`}><ClipboardListIcon className="w-5 h-5" /> Detail</button>
                     <button onClick={() => setDetailTab('checklist')} className={`shrink-0 inline-flex items-center gap-2 py-3 px-1 border-b-2 font-medium text-sm transition-colors ${detailTab === 'checklist' ? 'border-brand-accent text-brand-accent' : 'border-transparent text-brand-text-secondary hover:text-brand-text-light'}`}><CheckCircleIcon className="w-5 h-5" /> Checklist Hari H</button>
+                    <button onClick={() => setDetailTab('dekorasi')} className={`shrink-0 inline-flex items-center gap-2 py-3 px-1 border-b-2 font-medium text-sm transition-colors ${detailTab === 'dekorasi' ? 'border-brand-accent text-brand-accent' : 'border-transparent text-brand-text-secondary hover:text-brand-text-light'}`}><PackageIcon className="w-5 h-5" /> Kebutuhan Dekorasi</button>
                     <button onClick={() => setDetailTab('files')} className={`shrink-0 inline-flex items-center gap-2 py-3 px-1 border-b-2 font-medium text-sm transition-colors ${detailTab === 'files' ? 'border-brand-accent text-brand-accent' : 'border-transparent text-brand-text-secondary hover:text-brand-text-light'}`}><FileTextIcon className="w-5 h-5" /> File & Tautan</button>
                 </nav>
             </div>
@@ -1439,6 +2156,16 @@ const ProjectDetailModal: React.FC<ProjectDetailModalProps> = ({ selectedProject
                         <span>Checklist</span>
                     </button>
                     <button
+                        onClick={() => setDetailTab('dekorasi')}
+                        className={`flex-shrink-0 inline-flex items-center gap-2 px-4 py-2.5 rounded-full font-medium text-sm transition-all duration-200 ${detailTab === 'dekorasi'
+                            ? 'bg-brand-accent text-white shadow-lg shadow-brand-accent/30'
+                            : 'bg-brand-surface text-brand-text-secondary border border-brand-border active:scale-95'
+                            }`}
+                    >
+                        <PackageIcon className="w-4 h-4" />
+                        <span>Dekorasi</span>
+                    </button>
+                    <button
                         onClick={() => setDetailTab('files')}
                         className={`flex-shrink-0 inline-flex items-center gap-2 px-4 py-2.5 rounded-full font-medium text-sm transition-all duration-200 ${detailTab === 'files'
                             ? 'bg-brand-accent text-white shadow-lg shadow-brand-accent/30'
@@ -1452,6 +2179,14 @@ const ProjectDetailModal: React.FC<ProjectDetailModalProps> = ({ selectedProject
             </div>
 
             <div className="pt-0 md:pt-6 max-h-[65vh] overflow-y-auto pr-2 pb-4">
+                {detailTab === 'dekorasi' && (
+                    <DekorasiTab
+                        selectedProject={selectedProject}
+                        projects={projects}
+                        setProjects={setProjects}
+                        showNotification={showNotification}
+                    />
+                )}
                 {detailTab === 'checklist' && (
                     <div className="space-y-6">
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -3587,6 +4322,7 @@ export const Projects: React.FC<ProjectsProps> = ({ projects, setProjects, clien
                     clients={clients}
                     profile={profile}
                     showNotification={showNotification}
+                    projects={projects}
                     setProjects={setProjects}
                     onClose={() => setIsDetailModalOpen(false)}
                     handleOpenForm={handleOpenForm}

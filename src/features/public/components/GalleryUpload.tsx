@@ -294,7 +294,7 @@ const GalleryUpload: React.FC<GalleryUploadProps> = ({ userProfile, showNotifica
                             </div>
 
                             <div className="absolute top-3 right-3 bg-black/60 backdrop-blur-md text-white px-2.5 py-1 rounded-full text-xs font-medium border border-white/10 shadow-sm">
-                                {gallery.images.length} foto
+                                {gallery.images.length} gambar
                             </div>
                         </div>
 
@@ -370,7 +370,7 @@ const GalleryUpload: React.FC<GalleryUploadProps> = ({ userProfile, showNotifica
                         <CameraIcon className="w-20 h-20 mx-auto relative z-10" />
                     </div>
                     <h3 className="text-xl font-bold text-brand-text-light mb-2">Belum Ada Pricelist</h3>
-                    <p className="text-brand-text-secondary mb-6 max-w-sm mx-auto">Mulai unggah foto portofolio / event Anda dan kelola berdasarkan wilayah pemasaran dengan mudah.</p>
+                    <p className="text-brand-text-secondary mb-6 max-w-sm mx-auto">Mulai unggah gambar portofolio / event Anda dan kelola berdasarkan wilayah pemasaran dengan mudah.</p>
                     <button
                         onClick={() => setIsCreateModalOpen(true)}
                         className="button-primary"

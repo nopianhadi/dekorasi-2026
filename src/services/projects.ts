@@ -44,6 +44,7 @@ export type UpdateProjectInput = Partial<CreateProjectInput> & Partial<Pick<Proj
   | 'shippingDetails' | 'activeSubStatuses' | 'customSubStatuses' | 'confirmedSubStatuses' | 'clientSubStatusNotes'
   | 'subStatusConfirmationSentAt' | 'invoiceSignature' | 'isEditingConfirmedByClient' | 'isPrintingConfirmedByClient'
   | 'isDeliveryConfirmedByClient' | 'durationSelection' | 'statusHistory' | 'address'
+  | 'inventoryItems' | 'eventDetails'
 >> & { addOns?: { id: string; name: string; price: number }[] };
 
 function normalizeProject(row: any): Project {
@@ -98,6 +99,8 @@ function normalizeProject(row: any): Project {
     statusHistory: row.status_history || [],
     address: row.address || undefined,
     weddingDayChecklist: [],
+    inventoryItems: row.inventory_items || undefined,
+    eventDetails: row.event_details || undefined,
   } as Project;
 }
 
@@ -254,6 +257,8 @@ export async function updateProject(projectId: string, input: UpdateProjectInput
     ...(input as any).unitPrice !== undefined && (input as any).unitPrice !== null && !Number.isNaN(Number((input as any).unitPrice)) ? { unit_price: (input as any).unitPrice } : {},
     ...(input.statusHistory !== undefined ? { status_history: input.statusHistory } : {}),
     ...(input.address !== undefined ? { address: input.address || null } : {}),
+    ...(input.inventoryItems !== undefined ? { inventory_items: input.inventoryItems } : {}),
+    ...(input.eventDetails !== undefined ? { event_details: input.eventDetails } : {}),
   };
 
   // map duration/unit price if provided

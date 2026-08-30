@@ -177,6 +177,7 @@
       /* --- Enhanced Touch-Friendly Form Elements --- */
       .input-group {
         position: relative;
+        min-width: 0;
       }
 
       /* Enhanced Input Fields with Touch Optimization */
@@ -199,6 +200,10 @@
         appearance: none;
         box-shadow: 0 0 0 0 transparent;
       }
+
+      .input-field::placeholder {
+        color: transparent;
+      }
       
       /* Enhanced Focus State */
       .input-field:focus {
@@ -220,6 +225,10 @@
         padding: 0 0.25rem;
         background-color: var(--color-input-bg);
         white-space: nowrap;
+        max-width: calc(100% - 2rem);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        line-height: 1.2;
       }
       
       .input-field:focus + .input-label,
@@ -230,6 +239,23 @@
         font-weight: 600;
         color: var(--color-accent);
         left: 0.75rem;
+        max-width: calc(125% - 1.5rem);
+      }
+
+      label.input-label[class~="!static"],
+      .input-label.form-label-static {
+        position: static !important;
+        display: inline-block;
+        transform: none !important;
+        max-width: 100%;
+        margin-bottom: 0.5rem;
+        padding: 0;
+        background: transparent;
+        white-space: normal;
+        overflow: visible;
+        text-overflow: clip;
+        line-height: 1.35;
+        pointer-events: auto;
       }
       
       .input-field:not(:placeholder-shown):not(:focus) + .input-label {
@@ -328,13 +354,14 @@
       /* --- Enhanced Input with Icon --- */
       .input-with-icon {
         position: relative;
+        min-width: 0;
       }
       
       .input-with-icon input {
         display: block;
         width: 100%;
         min-height: 48px;
-        padding: 0 1rem 0 3.5rem;
+        padding: 0 1rem 0 3.25rem !important;
         line-height: 48px;
         font-family: inherit;
         font-size: max(16px, 1rem);
@@ -359,6 +386,7 @@
         pointer-events: none;
         width: 20px;
         height: 20px;
+        z-index: 2;
       }
 
       .input-with-icon input::placeholder {

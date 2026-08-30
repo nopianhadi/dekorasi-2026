@@ -66,6 +66,7 @@ export enum ViewType {
   SETTINGS = 'Pengaturan',
   CONTRACTS = 'Kontrak',
   VENDOR_PROFILE = 'Profil Vendor',
+  INVENTORY = 'Inventaris Dekorasi',
 }
 
 export interface SubStatusConfig {
@@ -300,7 +301,7 @@ export interface AddOn {
 export interface TeamMember {
   id: string;
   name: string;
-  role: string; // Fotografer, Videografer, Editor etc.
+  role: string; // Tim Dekorasi, Tim Pendukung, Editor etc.
   email: string;
   phone: string;
   standardFee: number;
@@ -327,7 +328,7 @@ export interface AssignedTeamMember {
 
 export interface PrintingItem {
   id: string;
-  type: 'Cetak Album' | 'Cetak Foto' | 'Flashdisk' | 'Custom';
+  type: 'Cetak Album' | 'Cetak Gambar' | 'Flashdisk' | 'Custom';
   customName?: string;
   details: string;
   cost: number;
@@ -376,6 +377,25 @@ export interface WeddingDayChecklist {
 export interface ChecklistTemplate {
   category: string;
   items: string[];
+}
+
+export interface InventoryItem {
+  id: string;
+  name: string;
+  category: string;
+  totalQuantity: number;
+  coverImage?: string;
+  notes?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface ProjectInventoryItem {
+  itemId: string;
+  quantity: number;
+  notes?: string;
+  name?: string; // For UI display
+  coverImage?: string; // For UI display
 }
 
 export interface Project {
@@ -430,7 +450,7 @@ export interface Project {
   isDeliveryConfirmedByClient?: boolean;
   confirmedSubStatuses?: string[];
   clientSubStatusNotes?: Record<string, string>;
-  subStatusConfirmationSentAt?: Record<string, string>; // e.g. { 'Seleksi Foto': '2023-10-27T10:00:00Z' }
+  subStatusConfirmationSentAt?: Record<string, string>; // e.g. { 'Seleksi Gambar': '2023-10-27T10:00:00Z' }
   completedDigitalItems?: string[];
   invoiceSignature?: string;
   customSubStatuses?: SubStatusConfig[];
@@ -442,6 +462,8 @@ export interface Project {
   unitPrice?: number; // unit price used for package at time of booking
   address?: string; // specific venue address
   weddingDayChecklist?: WeddingDayChecklist[];
+  inventoryItems?: ProjectInventoryItem[];
+  eventDetails?: Record<string, any>;
 }
 
 // Custom operational cost item

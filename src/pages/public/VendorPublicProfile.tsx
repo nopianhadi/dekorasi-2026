@@ -67,7 +67,7 @@ const VendorPublicProfile: React.FC = () => {
     }
 
     const whatsappUrl = profile?.whatsapp_number ? formatWa(profile.whatsapp_number) : null;
-    const vendorName = profile?.hero_title || 'Photography';
+    const vendorName = profile?.hero_title || 'Vendor Dekorasi';
 
     const handlePortfolioClick = (id: string) => {
         window.location.hash = `#/portfolio/${id}`;
@@ -268,7 +268,7 @@ const VendorPublicProfile: React.FC = () => {
                                             </span>
                                             <h3 className="text-white text-xl font-light text-center">{portfolio.title}</h3>
                                             <p className="text-white/60 text-xs mt-2 tracking-widest" style={{ fontFamily: 'Montserrat, sans-serif' }}>
-                                                {portfolio.images?.length || 0} foto · Lihat Detail →
+                                                {portfolio.images?.length || 0} gambar · Lihat Detail →
                                             </p>
                                         </div>
                                         {/* Always-visible label */}

@@ -153,7 +153,7 @@ const PublicGallery: React.FC<PublicGalleryProps> = ({ galleryId }) => {
                             </svg>
                         </div>
                         <h3 className="text-2xl font-bold text-gray-900 mb-3">Pricelist Kosong</h3>
-                        <p className="text-gray-600 text-lg">Belum ada foto yang diupload ke Pricelist ini</p>
+                        <p className="text-gray-600 text-lg">Belum ada gambar yang diupload ke Pricelist ini</p>
                     </div>
                 ) : (
                     <div>
@@ -166,7 +166,7 @@ const PublicGallery: React.FC<PublicGalleryProps> = ({ galleryId }) => {
                                 >
                                     <img
                                         src={sanitizeImageUrl(image.thumbnailUrl || image.url)}
-                                        alt={image.caption || `Foto ${index + 1}`}
+                                        alt={image.caption || `Gambar ${index + 1}`}
                                         className="w-full h-auto object-cover transition-opacity duration-300"
                                         loading={index < 8 ? "eager" : "lazy"}
                                         decoding="async"
@@ -236,7 +236,7 @@ const PublicGallery: React.FC<PublicGalleryProps> = ({ galleryId }) => {
                         <div className="relative flex items-center justify-center w-full h-full">
                             <img
                                 src={sanitizeImageUrl(selectedImage.url)}
-                                alt={selectedImage.caption || 'Foto'}
+                                alt={selectedImage.caption || 'Gambar'}
                                 className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
                             />
                         </div>

@@ -338,7 +338,7 @@ const PREVIEW_VARS: Record<string, string> = {
     txDate: '14 Maret 2026',
     txAmount: 'Rp 2.000.000',
     txMethod: 'Transfer BCA',
-    txDesc: 'Pelunasan biaya fotografi',
+    txDesc: 'Pelunasan biaya dekorasi',
     targetName: 'Vendor Bunga',
 };
 

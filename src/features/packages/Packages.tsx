@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { Package, AddOn, Project, PhysicalItem, Profile, REGIONS, Region, DurationOption } from '../../types';
 import PageHeader from '../../layouts/PageHeader';
 import Modal from '../../shared/ui/Modal';
-import { PencilIcon, Trash2Icon, PlusIcon, Share2Icon, FileTextIcon, CameraIcon, ChevronDownIcon } from '../../constants';
+import { PencilIcon, Trash2Icon, PlusIcon, Share2Icon, FileTextIcon, CameraIcon, ChevronDownIcon, PackageIcon } from '../../constants';
 import RupiahInput from '../../shared/form/RupiahInput';
 import { createPackage as createPackageRow, updatePackage as updatePackageRow, deletePackage as deletePackageRow } from '../../services/packages';
 import { createAddOn as createAddOnRow, updateAddOn as updateAddOnRow, deleteAddOn as deleteAddOnRow } from '../../services/addOns';
@@ -448,7 +448,7 @@ const Packages: React.FC<PackagesProps> = ({ packages, setPackages, addOns, setA
 
     return (
         <div className="space-y-6 md:space-y-8 animate-fade-in pb-8">
-            <PageHeader title="Package Vendor" subtitle="Kelola portofolio Package, opsi durasi, dan item tambahan (add-ons).">
+            <PageHeader title="Package Vendor" subtitle="Kelola portofolio Package, opsi durasi, dan item tambahan (add-ons)." icon={<PackageIcon className="w-6 h-6" />}>
                 <div className="flex flex-wrap items-center gap-2">
                     <button onClick={() => setIsInfoModalOpen(true)} className="button-secondary !py-2 !px-3 text-xs md:text-sm">Panduan</button>
                     <button onClick={() => setIsShareModalOpen(true)} className="button-secondary !py-2 !px-3 text-xs md:text-sm inline-flex items-center gap-2">
@@ -558,8 +558,10 @@ const Packages: React.FC<PackagesProps> = ({ packages, setPackages, addOns, setA
                                             </div>
 
                                             <div className="flex gap-2 mt-4 pt-4 border-t border-brand-border/50">
-                                                <button onClick={() => handlePackageEdit(pkg)} className="button-secondary flex-1 text-xs py-2 shadow-sm">Edit Package</button>
-                                                <button onClick={() => handlePackageDelete(pkg.id)} className="button-secondary !p-2 md:!p-2.5 text-brand-text-secondary hover:text-red-600 hover:border-red-300 hover:bg-red-50 flex-shrink-0" title="Hapus Package"><Trash2Icon className="w-4 h-4" /></button>
+                                                <button onClick={() => handlePackageEdit(pkg)} className="button-secondary flex-1 text-xs py-2 shadow-sm">
+                                                    <PencilIcon className="w-4 h-4" /> Edit Package
+                                                </button>
+                                                <button onClick={() => handlePackageDelete(pkg.id)} className="button-secondary !p-2 md:!p-2.5 text-brand-text-secondary hover:text-red-600 hover:border-red-300 hover:bg-red-50 flex-shrink-0" title="Hapus Package" aria-label={`Hapus Package ${pkg.name}`}><Trash2Icon className="w-4 h-4" /></button>
                                             </div>
                                         </div>
                                     </div>
@@ -586,8 +588,8 @@ const Packages: React.FC<PackagesProps> = ({ packages, setPackages, addOns, setA
                                         <span className="text-xs font-bold text-brand-accent mt-0.5">{formatCurrency(addon.price)}</span>
                                     </div>
                                     <div className="flex gap-1 opacity-100 lg:opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
-                                        <button onClick={() => handleAddOnEdit(addon)} className="p-2 rounded-lg text-brand-text-secondary hover:bg-amber-50 hover:text-amber-600 transition-colors"><PencilIcon className="w-4 h-4" /></button>
-                                        <button onClick={() => handleAddOnDelete(addon.id)} className="p-2 rounded-lg text-brand-text-secondary hover:bg-red-50 hover:text-red-600 transition-colors"><Trash2Icon className="w-4 h-4" /></button>
+                                        <button onClick={() => handleAddOnEdit(addon)} className="p-2 rounded-lg text-brand-text-secondary hover:bg-amber-50 hover:text-amber-600 transition-colors" title="Edit Add-On" aria-label={`Edit Add-On ${addon.name}`}><PencilIcon className="w-4 h-4" /></button>
+                                        <button onClick={() => handleAddOnDelete(addon.id)} className="p-2 rounded-lg text-brand-text-secondary hover:bg-red-50 hover:text-red-600 transition-colors" title="Hapus Add-On" aria-label={`Hapus Add-On ${addon.name}`}><Trash2Icon className="w-4 h-4" /></button>
                                     </div>
                                 </div>
                             ))}

@@ -140,11 +140,11 @@ export async function renameChecklistCategory(projectId: string, oldCategory: st
 }
 
 export const DEFAULT_CHECKLIST_TEMPLATES = [
-  { category: 'Persiapan', items: ['Cek perlengkapan makeup', 'Cek gaun/jas pengantin', 'Cek bunga tangan', 'Cek cincin'] },
-  { category: 'Mempelai Pria', items: ['Foto detail aksesoris', 'Prosesi pemakaian jas', 'Foto bersama orang tua', 'Keberangkatan'] },
-  { category: 'Mempelai Wanita', items: ['Foto makeup', 'Prosesi pemakaian gaun', 'Foto bersama bridesmaids', 'First look'] },
-  { category: 'Foto Keluarga', items: ['Keluarga inti pria', 'Keluarga inti wanita', 'Keluarga besar', 'Sesi salaman'] },
-  { category: 'Catering', items: ['Cek menu utama', 'Cek pondokan', 'Cek kebersihan area makan', 'Cek ketersediaan piring/sendok'] },
+  { category: 'Persiapan', items: ['Cek perlengkapan', 'Cek dekorasi utama', 'Cek bunga', 'Cek properti pendukung'] },
+  { category: 'Mempelai Pria', items: ['Dekorasi kamar pengantin pria', 'Dekorasi area keluarga pria', 'Keberangkatan'] },
+  { category: 'Mempelai Wanita', items: ['Dekorasi kamar pengantin wanita', 'Dekorasi area siraman/pengajian', 'Dekorasi ruang makeup'] },
+  { category: 'Area Keluarga', items: ['Dekorasi area keluarga inti', 'Dekorasi area VIP', 'Dekorasi area salaman'] },
+  { category: 'Catering', items: ['Dekorasi meja buffet', 'Dekorasi gubukan/pondokan', 'Dekorasi VIP', 'Bunga meja'] },
 ];
 
 export async function initializeDefaultChecklist(projectId: string, customTemplates?: { category: string; items: string[] }[]): Promise<WeddingDayChecklist[]> {
