@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Client, Project, ClientFeedback, SatisfactionLevel, Transaction, Profile, Package, SubStatusConfig, TransactionType, ClientPortalProps, ProjectStatusConfig, TeamMember } from '../../../types';
-import { FolderKanbanIcon, ClockIcon, StarIcon, FileTextIcon, HomeIcon, CreditCardIcon, CheckCircleIcon, SendIcon, DownloadIcon, GalleryHorizontalIcon, MessageSquareIcon, ChevronRightIcon, CalendarIcon, BriefcaseIcon, DollarSignIcon, UsersIcon, GoogleIcon, LinkIcon, BoxIcon } from '../../../constants';
+import { FolderKanbanIcon, ClockIcon, StarIcon, FileTextIcon, HomeIcon, CreditCardIcon, CheckCircleIcon, SendIcon, DownloadIcon, GalleryHorizontalIcon, MessageSquareIcon, ChevronRightIcon, CalendarIcon, BriefcaseIcon, DollarSignIcon, UsersIcon, GoogleIcon, LinkIcon } from '../../../constants';
+import { BoxIcon } from 'lucide-react';
 import Modal from '../../../shared/ui/Modal';
 import SignaturePad from '../../../shared/ui/SignaturePad';
 import { createClientFeedback } from '../../../services/clientFeedback';
